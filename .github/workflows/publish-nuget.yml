@@ -22,9 +22,6 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Restore
-        run: dotnet restore
-
       - name: Pack AuditLoggingPipeline.Models
         run: dotnet pack AuditLoggingPipeline.Models/AuditLoggingPipeline.Models.csproj -c Release -o "${{ github.workspace }}/nupkgs"
 
