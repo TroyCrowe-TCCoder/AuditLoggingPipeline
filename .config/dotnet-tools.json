@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "validationengine": {
+      "version": "1.0.4",
+      "commands": [
+        "validation-engine"
+      ],
+      "rollForward": false
+    },
+    "validationengine.link": {
+      "version": "1.0.1",
+      "commands": [
+        "validation-engine-link"
+      ],
+      "rollForward": false
+    }
+  }
+}

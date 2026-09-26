@@ -1,0 +1,33 @@
+#!/bin/sh
+# Pre-commit hook — AuditLoggingPipeline
+#
+# Runs the locally-installed ValidationEngine dotnet tool (via .config/dotnet-tools.json)
+# before allowing a commit. If validation fails, the commit is blocked and every
+# discrepancy reported by the tool is printed to the console.
+#
+# This is a thin wrapper only — do not add validation logic here. ValidationEngine bundles
+# its own standards corpus and requires no sibling-repository checkout or -GlobalStandardsRoot,
+# per GlobalDeveloperOnboardingStandards.md Section 4.1.
+#
+# Requires the ValidationEngine local dotnet tool to be restored:
+#   dotnet tool restore
+#
+# This hook is version-controlled under .githooks/ and is not active until a
+# contributor runs `pwsh ./Scripts/SetupHooks.ps1` once after cloning (see repository README).
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+echo "Running pre-commit validation (validation-engine)..."
+
+pwsh -NoProfile -NoLogo -Command "dotnet tool run validation-engine -- -RepositoryRoot '$repo_root' -Mode System"
+status=$?
+
+if [ $status -ne 0 ]; then
+  echo ""
+  echo "Pre-commit validation FAILED. Commit blocked."
+  echo "Fix the discrepancies listed above, then try committing again."
+  exit 1
+fi
+
+echo "Pre-commit validation passed."
+exit 0

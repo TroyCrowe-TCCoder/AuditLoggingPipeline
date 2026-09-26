@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="AuditLoggingPipeline.Models/AuditLoggingPipeline.Models.csproj" />
+  <Project Path="AuditLoggingPipeline.Tests/AuditLoggingPipeline.Tests.csproj" />
+  <Project Path="AuditLoggingPipeline.Tracker/AuditLoggingPipeline.Tracker.csproj" />
+  <Project Path="AuditLoggingPipeline.Tracker.Tests/AuditLoggingPipeline.Tracker.Tests.csproj" />
+  <Project Path="AuditLoggingPipeline/AuditLoggingPipeline.csproj" />
+</Solution>
