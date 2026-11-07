@@ -13,6 +13,7 @@ plugin, or both.
 | `AuditLoggingPipeline` (Audit) | "What happened" — who did what to which record, and whether it worked. | Models, Core |
 | `AuditLoggingPipeline.Tracker` (Tracker) | "What changed" — state trail of the record a method mutated. | Models, Core |
 | `AuditLoggingPipeline.Telemetry` (Telemetry) | "How it is used" — batched, sampled usage events with durations and outcomes. Informational, not about who. | Models, Core |
+| `AuditLoggingPipeline.Telemetry.Sql` (Telemetry SQL sink) | Stores usage events in SQL Server through a stored procedure and a table-valued parameter. The app owns the tables. | Models |
 
 Audit, Tracker and Telemetry are optional sibling plugins.
 if you only need the shared contracts to build your own sink implementations.
@@ -63,6 +64,7 @@ See the package-level READMEs for full details:
 - [`AuditLoggingPipeline/README.md`](./AuditLoggingPipeline/README.md)
 - [`AuditLoggingPipeline.Tracker/README.md`](./AuditLoggingPipeline.Tracker/README.md)
 - [`AuditLoggingPipeline.Telemetry/README.md`](./AuditLoggingPipeline.Telemetry/README.md)
+- [`AuditLoggingPipeline.Telemetry.Sql/README.md`](./AuditLoggingPipeline.Telemetry.Sql/README.md)
 
 ## Repository layout
 
@@ -73,7 +75,9 @@ AuditLoggingPipeline.Core/            Shared engine
 AuditLoggingPipeline/                 Audit plugin ("what happened")
 AuditLoggingPipeline.Tracker/         Tracker plugin ("what changed")
 AuditLoggingPipeline.Telemetry/       Telemetry plugin ("how it is used")
+AuditLoggingPipeline.Telemetry.Sql/   SQL Server sink for Telemetry
 AuditLoggingPipeline.Tests/           Audit plugin and Core tests
 AuditLoggingPipeline.Tracker.Tests/   Tracker plugin tests
 AuditLoggingPipeline.Telemetry.Tests/ Telemetry plugin tests
+AuditLoggingPipeline.Telemetry.Sql.Tests/ SQL sink tests
 ```
