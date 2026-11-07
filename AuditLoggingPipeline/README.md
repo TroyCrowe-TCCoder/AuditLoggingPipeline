@@ -1,38 +1,43 @@
 # AuditLoggingPipeline
 
-Non-blocking, multi-sink audit and state-trail logging for .NET APIs, built around a
-`DispatchProxy`-based interception pattern.
+Non-blocking, multi-sink audit logging for .NET APIs. It records who did what, to which record,
+and whether it worked, without ever delaying or failing the caller's request.
 
-## What it does
+## How entries are produced
 
-`AuditingDispatchProxy<TInterface>` transparently wraps a service interface implementation.
-Any invoked method whose name starts with `Save`, `Add`, `Update`, `Archive`, or `Delete` is
-observed asynchronously and turned into an `AuditEntry` — without ever delaying, blocking, or
-faulting the caller's original request. Entries are queued onto a bounded `AuditChannel` and
-drained by a background hosted service, `AuditLogBackgroundService`, which fans each entry out
-to every `IAuditSink` registered by the consuming application.
+Two ways, which can be mixed:
 
-This library ships the interception mechanism and plumbing only. It does not ship any concrete
-sink implementation — each consuming application defines its own `IAuditSink` implementations
-for whatever purpose it needs (e.g. an action log persisted to an audit table, or a
-security/state-trail append-only history table), and registers zero, one, or several of them.
-Each registered sink is invoked and isolated independently: a slow or failing sink can never
-affect another sink, the channel drain loop, or the caller's original request.
+- **Proxy.** `AuditingDispatchProxy<TInterface>` wraps a service. Any method that matches the
+  configured prefixes or suffixes (Save, Add, Update, Upsert, Insert, Archive, Restore, Delete,
+  Remove by default) produces an `AuditEntry`. The actor, IP address, and correlation id are
+  captured at call time from `IAuditContextProvider`.
+- **Recorder.** Inject `IAuditRecorder` and call `Record` or `RecordAsync` with an `AuditRecord`
+  for events no proxy can see, such as a sign-in or an authorization failure.
+
+Entries go to a bounded channel and are drained by a hosted service that delivers each one to
+every registered `IAuditSink`, with a timeout and retries per sink. A slow or failing sink does
+not stop the others. On shutdown, buffered entries are delivered first.
+
+This package ships the plumbing only. Each application writes its own `IAuditSink`, which maps
+the entry onto its own audit tables.
 
 ## Usage
 
 ```csharp
-// Startup
-services.AddAuditLogging();
-services.AddScoped<IAuditSink, MyActionLogSink>();
+services.AddAuditLogging(options =>
+{
+	options.MethodSuffixes.Add("Onboarding");
+	options.IncludeArguments = false;
+});
+services.AddScoped<IAuditContextProvider, MyContextProvider>();
+services.AddScoped<IAuditSink, MyAuditSink>();
 services.AddAuditedScoped<IClientService, ClientService>();
 ```
 
-## Design notes
+`IncludeArguments` is off by default because arguments can contain sensitive data.
 
-- One shared interception mechanism serves any number of logging purposes; adding a new purpose
-  means writing a new `IAuditSink` implementation, not changing this library.
-- No purpose is hardcoded (no "action log" vs. "state trail" split baked into the proxy).
-- Sinks needing "previous state" for a state-trail use case are expected to rely on their own
-  append-only table's most recent row for that entity — the proxy and this library do not fetch
-  or supply prior state.
+## Notes
+
+- Depends on `AuditLoggingPipeline.Models` and `AuditLoggingPipeline.Core`.
+- The proxy cannot know the record's state; use `AuditLoggingPipeline.Tracker` for before and
+  after state.

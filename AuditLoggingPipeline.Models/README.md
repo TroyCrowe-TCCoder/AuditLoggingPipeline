@@ -1,30 +1,26 @@
 # AuditLoggingPipeline.Models
 
-Shared contracts for the AuditLoggingPipeline product. This package has no runtime behavior of
-its own; it defines the types that let the `AuditLoggingPipeline` (Audit) and
-`AuditLoggingPipeline.Tracker` (Tracker) plugins interoperate with a consuming application
-without depending on each other.
+Shared contracts and data shapes for the AuditLoggingPipeline product. This package has no
+runtime behavior and no dependencies; it defines the types that let the plugins and a consuming
+application's own code and sinks interoperate without depending on each other.
 
 ## What it contains
 
-- `IEntryChannel<TEntry>` / `IEntrySink<TEntry>` — the generic, non-blocking channel and sink
+- `IEntryChannel<TEntry>` / `IEntrySink<TEntry>` - the generic, non-blocking channel and sink
   contracts every plugin implements.
-- `AuditEntry` — the "what happened" action-log record (who, what method, succeeded/failed,
-  timestamp, correlation id).
-- `StateTrailEntry` — the "what changed" record (before/after entity snapshot).
-- `IAuditSink` / `ITrackerSink` — named, discoverable aliases of `IEntrySink<TEntry>` for each
-  plugin's entry type.
-
-## Who needs this package
-
-Always. `AuditLoggingPipeline.Models` is the default/base package. Install it alone only if
-you're authoring your own sink implementations against these contracts ahead of adding a plugin;
-otherwise it comes in transitively with `AuditLoggingPipeline` and/or
-`AuditLoggingPipeline.Tracker`.
+- `AuditEntry` - the "what happened" security record: actor, action, outcome, entity, reason,
+  timestamp, correlation id, and optional serialized arguments.
+- `StateTrailEntry` - the "what changed" record: entity name, id, named entity keys, and the
+  before and after state as JSON strings.
+- `IAuditSink` / `ITrackerSink` - named aliases of `IEntrySink<TEntry>` for each entry type.
+- Recorder contracts for explicit recording from code that is not behind a proxy:
+  `IAuditRecorder` with `AuditRecord`, and `IStateTrailRecorder` with `StateTrailRecord`.
+- `IAuditContextProvider` and `AuditContext` - how a consuming app supplies the acting user's
+  id, display name, IP address, and correlation id.
 
 ## Design notes
 
-- Contains contracts only — no channels, background services, or DispatchProxy logic. That
-  keeps this package trivially safe to reference from anywhere (including a consumer's own sink
-  implementations) without pulling in ASP.NET Core or plugin-specific runtime dependencies.
-- Plugins never reference each other, only this package.
+- Contracts and plain shapes only, so this package is safe to reference from anywhere.
+- The entry shapes describe the data to audit. Mapping an entry to a specific table or store is
+  the job of the consuming application's sinks.
+- Plugins never reference each other, only this package (and `AuditLoggingPipeline.Core`).

@@ -3,176 +3,183 @@ namespace AuditLoggingPipeline;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
-using System.Security.Claims;
-using System.Text.Json;
+using System.Runtime.ExceptionServices;
 
 /// <summary>
-/// <see cref="DispatchProxy"/> that transparently wraps an interface implementation and
-/// records an <see cref="AuditEntry"/> for any invoked method whose name starts with Save, Add,
-/// Update, Archive, or Delete (the repository/service mutation naming convention this library
-/// assumes). All other calls pass through untouched.
-///
-/// Auditing is fully non-blocking: the underlying call's result (Task/Task{T}/value) is
-/// returned to the caller immediately and completely untouched. Audit tracking is spun off
-/// independently via <see cref="Task.Run(Func{Task})"/>, which observes the original task's
-/// outcome and enqueues an <see cref="AuditEntry"/> to <see cref="AuditChannel"/> for later
-/// fan-out to every registered <see cref="IAuditSink"/> by <see cref="AuditLogBackgroundService"/>.
-/// Any exception thrown by the wrapped call propagates to the caller unchanged; the
-/// audit-tracking task never rethrows.
+/// <see cref="DispatchProxy"/> that wraps an interface implementation and records an
+/// <see cref="AuditEntry"/> for each call to a method selected by
+/// <see cref="InterceptionMatcher.IsMatch(InterceptionOptions, MethodInfo)"/> (by default the Save, Add, Update, Upsert,
+/// Insert, Archive, Restore, Delete and Remove verbs, as prefix or suffix). Other calls pass through untouched.
 /// </summary>
+/// <remarks>
+/// The acting user, IP address and correlation id are read from the <see cref="IAuditContextProvider"/>
+/// synchronously at call time, while the request is still alive. The wrapped call's result is returned
+/// unchanged; its outcome is observed with a continuation and never awaited by the caller, and an
+/// exception from the wrapped call propagates unchanged. This type cannot be sealed because
+/// <see cref="DispatchProxy"/> generates a subclass of it.
+/// </remarks>
 public class AuditingDispatchProxy<TInterface> : DispatchProxy where TInterface : class
 {
-    private static readonly string[] AuditedPrefixes = ["Save", "Add", "Update", "Archive", "Delete"];
-    private const int MaxArgumentsLength = 2000;
+	private TInterface _decorated = null!;
+	private AuditChannel _channel = null!;
+	private IAuditContextProvider _contextProvider = null!;
+	private AuditPipelineOptions _options = null!;
+	private ILogger? _logger;
 
-    private TInterface _decorated = null!;
-    private AuditChannel _channel = null!;
-    private IHttpContextAccessor? _httpContextAccessor;
-    private ILogger? _logger;
+	/// <summary>
+	/// Creates an auditing proxy that reads the actor from the current <see cref="HttpContext"/> and
+	/// uses default <see cref="AuditPipelineOptions"/>.
+	/// </summary>
+	/// <param name="decorated">The real implementation to wrap.</param>
+	/// <param name="channel">The channel audit entries are enqueued to.</param>
+	/// <param name="httpContextAccessor">Optional accessor used to capture the current user and correlation id.</param>
+	/// <param name="logger">Optional logger for failures observed while tracking.</param>
+	public static TInterface Create(
+		TInterface decorated,
+		AuditChannel channel,
+		IHttpContextAccessor? httpContextAccessor,
+		ILogger<AuditingDispatchProxy<TInterface>>? logger = null) =>
+		Create(decorated, channel, new HttpContextAuditContextProvider(httpContextAccessor), new AuditPipelineOptions(), logger);
 
-    /// <summary>
-    /// Creates a transparent auditing proxy wrapping <paramref name="decorated"/>. Calls to
-    /// audited methods (see <see cref="AuditedPrefixes"/>) are recorded to <paramref name="channel"/>;
-    /// all other calls pass through untouched.
-    /// </summary>
-    /// <param name="decorated">The real implementation to wrap.</param>
-    /// <param name="channel">The channel audit entries are enqueued to.</param>
-    /// <param name="httpContextAccessor">Optional accessor used to capture the current user and correlation id.</param>
-    /// <param name="logger">Optional logger used to record failures observed by the detached audit-tracking task.</param>
-    public static TInterface Create(
-        TInterface decorated,
-        AuditChannel channel,
-        IHttpContextAccessor? httpContextAccessor,
-        ILogger<AuditingDispatchProxy<TInterface>>? logger = null)
-    {
-        ArgumentNullException.ThrowIfNull(decorated);
-        ArgumentNullException.ThrowIfNull(channel);
+	/// <summary>Creates an auditing proxy with an explicit context provider and options.</summary>
+	/// <param name="decorated">The real implementation to wrap.</param>
+	/// <param name="channel">The channel audit entries are enqueued to.</param>
+	/// <param name="contextProvider">Supplies the actor, IP address and correlation id at call time.</param>
+	/// <param name="options">Decides which methods are recorded and whether arguments are captured.</param>
+	/// <param name="logger">Optional logger for failures observed while tracking.</param>
+	public static TInterface Create(
+		TInterface decorated,
+		AuditChannel channel,
+		IAuditContextProvider contextProvider,
+		AuditPipelineOptions options,
+		ILogger? logger = null)
+	{
+		ArgumentNullException.ThrowIfNull(decorated);
+		ArgumentNullException.ThrowIfNull(channel);
+		ArgumentNullException.ThrowIfNull(contextProvider);
+		ArgumentNullException.ThrowIfNull(options);
 
-        object proxy = Create<TInterface, AuditingDispatchProxy<TInterface>>()!;
-        var typedProxy = (AuditingDispatchProxy<TInterface>)proxy;
+		var proxy = (AuditingDispatchProxy<TInterface>)(object)Create<TInterface, AuditingDispatchProxy<TInterface>>()!;
 
-        typedProxy._decorated = decorated;
-        typedProxy._channel = channel;
-        typedProxy._httpContextAccessor = httpContextAccessor;
-        typedProxy._logger = logger;
+		proxy._decorated = decorated;
+		proxy._channel = channel;
+		proxy._contextProvider = contextProvider;
+		proxy._options = options;
+		proxy._logger = logger;
 
-        return (TInterface)proxy;
-    }
+		return (TInterface)(object)proxy;
+	}
 
-    /// <summary>
-    /// Invokes the wrapped method, records an audit entry for audited method names, and
-    /// returns the original result (or rethrows the original exception) unchanged.
-    /// </summary>
-    protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
-    {
-        ArgumentNullException.ThrowIfNull(targetMethod);
+	/// <summary>
+	/// Invokes the wrapped method, records an entry when the method is selected by the options, and
+	/// returns the original result (or rethrows the original exception) unchanged.
+	/// </summary>
+	protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+	{
+		ArgumentNullException.ThrowIfNull(targetMethod);
 
-        object? result;
-        try
-        {
-            result = targetMethod.Invoke(_decorated, args);
-        }
-        catch (TargetInvocationException ex) when (ex.InnerException is not null)
-        {
-            if (IsAudited(targetMethod.Name))
-            {
-                Enqueue(targetMethod, args, succeeded: false, errorMessage: ex.InnerException.Message);
-            }
+		if (!InterceptionMatcher.IsMatch(_options, targetMethod))
+		{
+			return Forward(targetMethod, args);
+		}
 
-            // Unwrap so the caller sees the original exception type, not the reflection wrapper.
-            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
-            throw; // unreachable
-        }
+		var call = CaptureCall(targetMethod, args);
 
-        if (IsAudited(targetMethod.Name))
-        {
-            TrackAsync(result, targetMethod, args);
-        }
+		object? result;
+		try
+		{
+			result = Forward(targetMethod, args);
+		}
+		catch (Exception ex)
+		{
+			Enqueue(call, succeeded: false, ex.Message);
+			throw;
+		}
 
-        // The original result (Task/Task<T>/value) is returned to the caller completely
-        // untouched; auditing runs independently on the thread pool and never affects it.
-        return result;
-    }
+		if (result is Task task)
+		{
+			task.ContinueWith(
+				completed => Enqueue(call, completed.IsCompletedSuccessfully, DescribeFailure(completed)),
+				CancellationToken.None,
+				TaskContinuationOptions.ExecuteSynchronously,
+				TaskScheduler.Default);
+		}
+		else
+		{
+			Enqueue(call, succeeded: true, errorMessage: null);
+		}
 
-    private static bool IsAudited(string methodName)
-    {
-        foreach (var prefix in AuditedPrefixes)
-        {
-            if (methodName.StartsWith(prefix, StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
+		return result;
+	}
 
-        return false;
-    }
+	private object? Forward(MethodInfo targetMethod, object?[]? args)
+	{
+		try
+		{
+			return targetMethod.Invoke(_decorated, args);
+		}
+		catch (TargetInvocationException ex) when (ex.InnerException is not null)
+		{
+			ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+			throw;
+		}
+	}
 
-    /// <summary>
-    /// Fires off audit tracking on the thread pool via <see cref="Task.Run(Func{Task})"/> so it
-    /// runs fully independently of the caller's awaited task. The audited task is only observed
-    /// (never awaited by the caller's own continuation chain), so audit tracking can never delay
-    /// or fault the original call.
-    /// </summary>
-    private void TrackAsync(object? result, MethodInfo targetMethod, object?[]? args)
-    {
-        if (result is not Task task)
-        {
-            // Synchronous audited method (not expected in typical usage, but handled safely).
-            Enqueue(targetMethod, args, succeeded: true, errorMessage: null);
-            return;
-        }
+	private CapturedCall CaptureCall(MethodInfo method, object?[]? args)
+	{
+		AuditContext context;
+		try
+		{
+			context = _contextProvider.GetContext();
+		}
+		catch (Exception ex)
+		{
+			_logger?.LogWarning(ex, "Audit context provider failed for {ServiceName}.{MethodName}; recording without actor details.", typeof(TInterface).Name, method.Name);
+			context = AuditContext.Empty;
+		}
 
-        Task.Run(async () =>
-        {
-            try
-            {
-                await task.ConfigureAwait(false);
-                Enqueue(targetMethod, args, succeeded: true, errorMessage: null);
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "Audited method {MethodName} on {ServiceName} failed; audit entry recorded with failure details.", targetMethod.Name, typeof(TInterface).Name);
-                Enqueue(targetMethod, args, succeeded: false, errorMessage: ex.Message);
-            }
-        });
-    }
+		var arguments = _options.IncludeArguments ? SerializeArguments(args) : null;
 
-    private void Enqueue(MethodInfo targetMethod, object?[]? args, bool succeeded, string? errorMessage)
-    {
-        var httpContext = _httpContextAccessor?.HttpContext;
+		return new CapturedCall(method.Name, context, arguments, DateTime.UtcNow);
+	}
 
-        var entry = new AuditEntry
-        {
-            TimestampUtc = DateTime.UtcNow,
-            ServiceName = typeof(TInterface).Name,
-            MethodName = targetMethod.Name,
-            UserId = httpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                ?? httpContext?.User.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value,
-            CorrelationId = httpContext?.TraceIdentifier,
-            Arguments = SerializeArguments(args),
-            Succeeded = succeeded,
-            ErrorMessage = errorMessage,
-        };
+	private string? SerializeArguments(object?[]? args)
+	{
+		// A CancellationToken is not data and cannot be serialized, so it must not sink the whole list.
+		var data = args?.Where(arg => arg is not CancellationToken).ToArray();
 
-        _channel.TryWrite(entry);
-    }
+		return data is { Length: > 0 } ? JsonPayload.Serialize(data, _logger) : null;
+	}
 
-    private string? SerializeArguments(object?[]? args)
-    {
-        if (args is null || args.Length == 0)
-        {
-            return null;
-        }
+	private static string? DescribeFailure(Task task)
+	{
+		if (task.IsCanceled)
+		{
+			return "The operation was canceled.";
+		}
 
-        try
-        {
-            var json = JsonSerializer.Serialize(args);
-            return json.Length > MaxArgumentsLength ? json[..MaxArgumentsLength] : json;
-        }
-        catch (Exception ex) when (ex is NotSupportedException or InvalidOperationException)
-        {
-            _logger?.LogWarning(ex, "Failed to serialize arguments for audited method on {ServiceName}; audit entry will omit argument details.", typeof(TInterface).Name);
-            return null;
-        }
-    }
+		return task.IsFaulted ? task.Exception?.GetBaseException().Message : null;
+	}
+
+	private void Enqueue(CapturedCall call, bool succeeded, string? errorMessage)
+	{
+		var entry = new AuditEntry
+		{
+			TimestampUtc = call.TimestampUtc,
+			Action = MethodNames.TrimAsync(call.MethodName),
+			Succeeded = succeeded,
+			UserId = call.Context.ActorId,
+			ActorDisplayName = call.Context.ActorDisplayName,
+			IpAddress = call.Context.IpAddress,
+			CorrelationId = call.Context.CorrelationId,
+			ServiceName = typeof(TInterface).Name,
+			MethodName = call.MethodName,
+			Arguments = call.Arguments,
+			ErrorMessage = errorMessage,
+		};
+
+		_channel.TryWrite(entry);
+	}
+
+	private sealed record CapturedCall(string MethodName, AuditContext Context, string? Arguments, DateTime TimestampUtc);
 }

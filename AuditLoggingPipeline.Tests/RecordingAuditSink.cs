@@ -26,9 +26,3 @@ public sealed class RecordingAuditSink : IAuditSink
         return Task.CompletedTask;
     }
 }
-
-public sealed class ThrowingAuditSink : IAuditSink
-{
-    public Task WriteAsync(AuditEntry entry, CancellationToken cancellationToken) =>
-        throw new InvalidOperationException("sink failure");
-}
