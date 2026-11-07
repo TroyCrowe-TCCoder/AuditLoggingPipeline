@@ -37,6 +37,9 @@ jobs:
       - name: Pack AuditLoggingPipeline.Telemetry
         run: dotnet pack AuditLoggingPipeline.Telemetry/AuditLoggingPipeline.Telemetry.csproj -c Release -o "${{ github.workspace }}/nupkgs"
 
+      - name: Pack AuditLoggingPipeline.Telemetry.Sql
+        run: dotnet pack AuditLoggingPipeline.Telemetry.Sql/AuditLoggingPipeline.Telemetry.Sql.csproj -c Release -o "${{ github.workspace }}/nupkgs"
+
       - name: List packed nupkgs
         run: Get-ChildItem -Path "${{ github.workspace }}/nupkgs" -Filter *.nupkg -ErrorAction SilentlyContinue | Format-Table -AutoSize
 
