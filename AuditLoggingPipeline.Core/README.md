@@ -14,6 +14,9 @@ building your own plugin.
   `ShutdownDrainTimeout`.
 - `EntryPipelineOptions` - channel capacity, full mode, retries, retry delay, sink timeout, and
   shutdown drain timeout.
+- `BatchDispatchService<TEntry, TSink>` and `BatchPipelineOptions` - the batching variant used by
+  Telemetry. It collects up to `BatchSize` entries, or whatever arrived within `FlushInterval`, and
+  delivers each batch to every sink with the same timeout, retry, isolation and shutdown-drain rules.
 - `InterceptionOptions` - which methods a proxy observes. `MethodPrefixes` and `MethodSuffixes`
   default to Save, Add, Update, Upsert, Insert, Archive, Restore, Delete, and Remove, and a prefix
   must be followed by a non-lowercase character (`SaveWidget` matches, `Saved` does not). Add your

@@ -1,6 +1,8 @@
 <Solution>
   <Project Path="AuditLoggingPipeline.Core/AuditLoggingPipeline.Core.csproj" />
     <Project Path="AuditLoggingPipeline.Models/AuditLoggingPipeline.Models.csproj" />
+  <Project Path="AuditLoggingPipeline.Telemetry/AuditLoggingPipeline.Telemetry.csproj" />
+  <Project Path="AuditLoggingPipeline.Telemetry.Tests/AuditLoggingPipeline.Telemetry.Tests.csproj" />
   <Project Path="AuditLoggingPipeline.Tests/AuditLoggingPipeline.Tests.csproj" />
   <Project Path="AuditLoggingPipeline.Tracker/AuditLoggingPipeline.Tracker.csproj" />
   <Project Path="AuditLoggingPipeline.Tracker.Tests/AuditLoggingPipeline.Tracker.Tests.csproj" />
