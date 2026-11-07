@@ -1,48 +1,38 @@
 # AuditLoggingPipeline.Tracker
 
-Non-blocking state-trail (before/after entity value) tracking for .NET APIs, built around a
-`DispatchProxy`-based interception pattern. Independent sibling of `AuditLoggingPipeline`
-(the Audit plugin); depends only on `AuditLoggingPipeline.Models`.
+Non-blocking state-trail tracking for .NET APIs: what a record looked like when it changed. An
+independent sibling of `AuditLoggingPipeline`; it depends only on `AuditLoggingPipeline.Models`
+and `AuditLoggingPipeline.Core`.
 
-## What it does
+## How entries are produced
 
-`TrackingDispatchProxy<TInterface>` transparently wraps a service interface implementation. Any
-invoked method whose name starts with `Save`, `Add`, `Update`, `Archive`, or `Delete` has its
-first reference-type argument (the entity being mutated) snapshotted before the call, and the
-call's outcome observed asynchronously afterward — without ever delaying, blocking, or faulting
-the caller's original request. A `StateTrailEntry` (before/after snapshot, success/failure) is
-queued onto a bounded `TrackerChannel` and drained by a background hosted service,
-`TrackerLogBackgroundService`, which fans each entry out to every `ITrackerSink` registered by
-the consuming application.
+- **Proxy.** `TrackingDispatchProxy<TInterface>` wraps a service. For a matching method (same
+  prefix and suffix rules as the Audit plugin) it takes the first class-typed argument as the
+  entity and records its state at call time as the after state. The entity id comes from
+  `StateTrailOptions.EntityIdResolver`, or from an `Id` or `<TypeName>Id` property when none is set.
+- **Recorder.** Inject `IStateTrailRecorder` and call `Record` or `RecordAsync` with a
+  `StateTrailRecord` when you have both the before and after state, for example after loading the
+  record first. Both states are serialized to JSON, and `EntityKeys` carries composite keys.
 
-This library ships the interception mechanism and plumbing only. It does not ship any concrete
-sink implementation — each consuming application defines its own `ITrackerSink` implementations
-(e.g. a state-trail table keyed by entity id) and registers zero, one, or several of them. Each
-registered sink is invoked and isolated independently: a slow or failing sink can never affect
-another sink, the channel drain loop, or the caller's original request.
+The proxy leaves `BeforeState` empty because it cannot load the prior record.
+
+Entries are queued on a bounded channel and delivered to every registered `ITrackerSink`, with a
+timeout and retries per sink and a drain on shutdown.
 
 ## Usage
 
 ```csharp
-// Startup
-services.AddStateTrailTracking();
+services.AddStateTrailTracking(options =>
+{
+	options.EntityIdResolver = entity => (entity as IHasKey)?.Key;
+});
+services.AddScoped<IAuditContextProvider, MyContextProvider>();
 services.AddScoped<ITrackerSink, MyStateTrailSink>();
 services.AddTrackedScoped<IClientService, ClientService>();
 ```
 
-## Relationship to AuditLoggingPipeline (Audit)
+## Notes
 
-Tracker and Audit are fully independent sibling plugins:
-
-- Each owns its own bounded channel, background service, DispatchProxy, and DI registration
-  helpers (`AddStateTrailTracking`/`AddTrackedScoped` vs. `AddAuditLogging`/`AddAuditedScoped`).
-- Neither references the other; both depend only on `AuditLoggingPipeline.Models`.
-- A consumer can install `Models` + `Tracker` only, `Models` + Audit only, or both — a failure or
-  slowdown in one plugin's pipeline never affects the other.
-
-## Design notes
-
-- Tracking is fully non-blocking: results are returned to the caller untouched, and tracking
-  work is spun off independently via `Task.Run`.
-- Any exception thrown by the wrapped call propagates to the caller unchanged (unwrapped from
-  the `DispatchProxy` reflection wrapper); the tracking task never rethrows.
+- Audit and Tracker are independent; install either or both. A failure in one never affects the
+  other.
+- Any exception from the wrapped call reaches the caller unchanged; tracking never rethrows.

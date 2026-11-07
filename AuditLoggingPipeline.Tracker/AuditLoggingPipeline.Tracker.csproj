@@ -11,10 +11,10 @@
 
   <PropertyGroup>
 	<PackageId>AuditLoggingPipeline.Tracker</PackageId>
-	<Version>0.1.0</Version>
+	<Version>0.2.0</Version>
 	<Authors>Troy Crowe</Authors>
 	<Company>Single Source Management</Company>
-	<Description>Non-blocking state-trail (before/after entity value) tracking for .NET APIs via a DispatchProxy-based interception pattern. Independent sibling of AuditLoggingPipeline; depends only on AuditLoggingPipeline.Models.</Description>
+	<Description>Non-blocking state-trail (before/after entity value) tracking for .NET APIs via a DispatchProxy-based interception pattern. Independent sibling of AuditLoggingPipeline; depends on AuditLoggingPipeline.Core and AuditLoggingPipeline.Models.</Description>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<RepositoryUrl>https://github.com/TroyCrowe-TCCoder/AuditLoggingPipeline</RepositoryUrl>
 	<RepositoryType>git</RepositoryType>
@@ -33,11 +33,12 @@
   </ItemGroup>
 
   <ItemGroup>
-	<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+	<PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.403" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
-	<ProjectReference Include="..\AuditLoggingPipeline.Models\AuditLoggingPipeline.Models.csproj" />
+	<ProjectReference Include="..\AuditLoggingPipeline.Core\AuditLoggingPipeline.Core.csproj" />
+		<ProjectReference Include="..\AuditLoggingPipeline.Models\AuditLoggingPipeline.Models.csproj" />
   </ItemGroup>
 
 </Project>

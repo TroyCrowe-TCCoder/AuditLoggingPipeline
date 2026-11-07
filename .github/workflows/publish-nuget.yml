@@ -25,6 +25,9 @@ jobs:
       - name: Pack AuditLoggingPipeline.Models
         run: dotnet pack AuditLoggingPipeline.Models/AuditLoggingPipeline.Models.csproj -c Release -o "${{ github.workspace }}/nupkgs"
 
+      - name: Pack AuditLoggingPipeline.Core
+        run: dotnet pack AuditLoggingPipeline.Core/AuditLoggingPipeline.Core.csproj -c Release -o "${{ github.workspace }}/nupkgs"
+
       - name: Pack AuditLoggingPipeline
         run: dotnet pack AuditLoggingPipeline/AuditLoggingPipeline.csproj -c Release -o "${{ github.workspace }}/nupkgs"
 

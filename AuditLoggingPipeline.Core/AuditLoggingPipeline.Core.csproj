@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFramework>net10.0</TargetFramework>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	<Deterministic>true</Deterministic>
+	<ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+	<PackageId>AuditLoggingPipeline.Core</PackageId>
+	<Version>0.2.0</Version>
+	<Authors>Troy Crowe</Authors>
+	<Company>Single Source Management</Company>
+	<Product>AuditLoggingPipeline.Core</Product>
+	<Description>Shared delivery engine for the AuditLoggingPipeline plugins: bounded channel, retrying sequential sink dispatcher with shutdown drain, HTTP context provider and proxy matching options.</Description>
+	<PackageTags>audit;logging;telemetry;dotnet;pipeline</PackageTags>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<RepositoryUrl>https://github.com/TroyCrowe-TCCoder/AuditLoggingPipeline</RepositoryUrl>
+	<RepositoryType>git</RepositoryType>
+	<PublishRepositoryUrl>true</PublishRepositoryUrl>
+	<EmbedUntrackedSources>true</EmbedUntrackedSources>
+	<IncludeSymbols>true</IncludeSymbols>
+	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<None Include="README.md" Pack="true" PackagePath="\" Condition="Exists('README.md')" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.403" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<ProjectReference Include="..\AuditLoggingPipeline.Models\AuditLoggingPipeline.Models.csproj" />
+  </ItemGroup>
+
+</Project>

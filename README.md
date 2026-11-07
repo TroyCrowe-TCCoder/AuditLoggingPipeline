@@ -8,9 +8,10 @@ plugin, or both.
 
 | Package | Purpose | Depends on |
 |---|---|---|
-| `AuditLoggingPipeline.Models` | Shared contracts only (entry types, channel/sink interfaces). Always installed, transitively or directly. | — |
-| `AuditLoggingPipeline` (Audit) | "What happened" — method-level action log: who called what, succeeded/failed, timestamp, correlation id. | `AuditLoggingPipeline.Models` |
-| `AuditLoggingPipeline.Tracker` (Tracker) | "What changed" — state-trail: before/after snapshot of the entity a method mutated. | `AuditLoggingPipeline.Models` |
+| `AuditLoggingPipeline.Models` | Shared contracts and data shapes (entry types, recorder, context, channel and sink interfaces). No dependencies. | — |
+| `AuditLoggingPipeline.Core` | Shared engine: bounded channel, dispatch service with retry, timeout and shutdown drain, interception options. Comes in transitively. | `AuditLoggingPipeline.Models` |
+| `AuditLoggingPipeline` (Audit) | "What happened" — who did what to which record, and whether it worked. | Models, Core |
+| `AuditLoggingPipeline.Tracker` (Tracker) | "What changed" — state trail of the record a method mutated. | Models, Core |
 
 Both Audit and Tracker are optional sibling plugins. Install either, both, or (rarely) neither
 if you only need the shared contracts to build your own sink implementations.
@@ -19,18 +20,15 @@ if you only need the shared contracts to build your own sink implementations.
 
 - **Choose your components.** A consuming team can adopt only the Audit action log, only the
   Tracker state trail, or both — without pulling in the plugin they don't need.
-- **Fully decoupled.** Audit and Tracker never reference each other. Each owns its own bounded
-  channel, background hosted service, `DispatchProxy` interceptor, and DI registration helpers.
-  They only share the contracts defined in `AuditLoggingPipeline.Models`.
-- **Fully non-blocking, for the host and for each other.** Every plugin enqueues onto its own
-  bounded, non-blocking channel (`TryWrite`, drop-oldest under pressure) and drains it on its own
-  independent `BackgroundService`. A slow or failing sink in one plugin can never delay or fault
-  the caller's request, the other plugin's pipeline, or another sink registered in the same
-  plugin.
-- **Bring your own sinks.** Neither plugin ships a concrete persistence implementation. Each
-  consuming application implements `IAuditSink` and/or `ITrackerSink` for whatever destination it
-  needs (a database table, a log sink, a queue, etc.) and registers zero, one, or several per
-  plugin.
+- **Fully decoupled.** Audit and Tracker never reference each other. Each owns its own channel,
+  hosted service, `DispatchProxy` interceptor, and DI registration helpers, built on the shared
+  Core engine. They share only the contracts in `AuditLoggingPipeline.Models`.
+- **Non-blocking, and no silent loss.** Entries are captured on the caller's thread, enqueued on a
+  bounded channel, and delivered by a background service. Each sink gets a timeout and retries,
+  and a failing sink never stops the others. Dropped entries and sink failures are logged, and
+  buffered entries are delivered on shutdown.
+- **Bring your own sinks.** Neither plugin ships a concrete store. Each consuming application
+  implements `IAuditSink` and/or `ITrackerSink` and maps the entry onto its own tables.
 
 ## Quick start
 
@@ -51,13 +49,16 @@ services.AddScoped<ITrackerSink, MyStateTrailSink>();
 services.AddTrackedScoped<IClientService, ClientService>();
 ```
 
-Both plugins use the same repository/service mutation naming convention: any wrapped interface
-method whose name starts with `Save`, `Add`, `Update`, `Archive`, or `Delete` is observed. All
-other calls pass through untouched.
+Both plugins use the same method-name rule: a wrapped interface method is observed when its name
+starts or ends with `Save`, `Add`, `Update`, `Upsert`, `Insert`, `Archive`, `Restore`, `Delete`,
+or `Remove`, and you can add your own words or supply a full matcher through the options. All
+other calls pass through untouched. For events a proxy cannot see, inject `IAuditRecorder` or
+`IStateTrailRecorder`.
 
 See the package-level READMEs for full details:
 
 - [`AuditLoggingPipeline.Models/README.md`](./AuditLoggingPipeline.Models/README.md)
+- [`AuditLoggingPipeline.Core/README.md`](./AuditLoggingPipeline.Core/README.md)
 - [`AuditLoggingPipeline/README.md`](./AuditLoggingPipeline/README.md)
 - [`AuditLoggingPipeline.Tracker/README.md`](./AuditLoggingPipeline.Tracker/README.md)
 
@@ -65,9 +66,10 @@ See the package-level READMEs for full details:
 
 ```
 AuditLoggingPipeline.slnx
-AuditLoggingPipeline.Models/          Shared contracts (default/base package)
+AuditLoggingPipeline.Models/          Shared contracts and shapes
+AuditLoggingPipeline.Core/            Shared engine
 AuditLoggingPipeline/                 Audit plugin ("what happened")
 AuditLoggingPipeline.Tracker/         Tracker plugin ("what changed")
-AuditLoggingPipeline.Tests/           Audit plugin tests
+AuditLoggingPipeline.Tests/           Audit plugin and Core tests
 AuditLoggingPipeline.Tracker.Tests/   Tracker plugin tests
 ```
