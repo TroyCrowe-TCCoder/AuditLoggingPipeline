@@ -12,8 +12,9 @@ plugin, or both.
 | `AuditLoggingPipeline.Core` | Shared engine: bounded channel, dispatch service with retry, timeout and shutdown drain, interception options. Comes in transitively. | `AuditLoggingPipeline.Models` |
 | `AuditLoggingPipeline` (Audit) | "What happened" — who did what to which record, and whether it worked. | Models, Core |
 | `AuditLoggingPipeline.Tracker` (Tracker) | "What changed" — state trail of the record a method mutated. | Models, Core |
+| `AuditLoggingPipeline.Telemetry` (Telemetry) | "How it is used" — batched, sampled usage events with durations and outcomes. Informational, not about who. | Models, Core |
 
-Both Audit and Tracker are optional sibling plugins. Install either, both, or (rarely) neither
+Audit, Tracker and Telemetry are optional sibling plugins.
 if you only need the shared contracts to build your own sink implementations.
 
 ## Why this shape
@@ -61,6 +62,7 @@ See the package-level READMEs for full details:
 - [`AuditLoggingPipeline.Core/README.md`](./AuditLoggingPipeline.Core/README.md)
 - [`AuditLoggingPipeline/README.md`](./AuditLoggingPipeline/README.md)
 - [`AuditLoggingPipeline.Tracker/README.md`](./AuditLoggingPipeline.Tracker/README.md)
+- [`AuditLoggingPipeline.Telemetry/README.md`](./AuditLoggingPipeline.Telemetry/README.md)
 
 ## Repository layout
 
@@ -70,6 +72,8 @@ AuditLoggingPipeline.Models/          Shared contracts and shapes
 AuditLoggingPipeline.Core/            Shared engine
 AuditLoggingPipeline/                 Audit plugin ("what happened")
 AuditLoggingPipeline.Tracker/         Tracker plugin ("what changed")
+AuditLoggingPipeline.Telemetry/       Telemetry plugin ("how it is used")
 AuditLoggingPipeline.Tests/           Audit plugin and Core tests
 AuditLoggingPipeline.Tracker.Tests/   Tracker plugin tests
+AuditLoggingPipeline.Telemetry.Tests/ Telemetry plugin tests
 ```

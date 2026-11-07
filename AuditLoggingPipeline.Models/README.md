@@ -17,6 +17,9 @@ application's own code and sinks interoperate without depending on each other.
   `IAuditRecorder` with `AuditRecord`, and `IStateTrailRecorder` with `StateTrailRecord`.
 - `IAuditContextProvider` and `AuditContext` - how a consuming app supplies the acting user's
   id, display name, IP address, and correlation id.
+- Telemetry contracts: `UsageEvent` (the delivered shape), `UsageRecord` and `ITelemetryRecorder`
+  (recording), `UsageOutcomes`, `IBatchSink<TEntry>` and `ITelemetrySink` (batch delivery), and
+  `IUsageUserKeyProvider` (optional user identifier, hashed before storage).
 
 ## Design notes
 
