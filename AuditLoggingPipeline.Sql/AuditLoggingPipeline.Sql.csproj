@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFramework>net10.0</TargetFramework>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	<Deterministic>true</Deterministic>
+	<ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+	<PackageId>AuditLoggingPipeline.Sql</PackageId>
+	<Version>0.1.0</Version>
+	<Authors>Troy Crowe</Authors>
+	<Company>Single Source Management</Company>
+	<Product>AuditLoggingPipeline.Sql</Product>
+	<Description>SQL Server sinks for AuditLoggingPipeline audit and state-trail entries. Every entry is written in one standard audit shape through a stored procedure and a table-valued parameter. The consuming app owns the tables and supplies the connection and procedure names as options.</Description>
+	<PackageTags>audit;state-trail;sql;sqlserver;logging;dotnet;pipeline</PackageTags>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<RepositoryUrl>https://github.com/TroyCrowe-TCCoder/AuditLoggingPipeline</RepositoryUrl>
+	<RepositoryType>git</RepositoryType>
+	<PublishRepositoryUrl>true</PublishRepositoryUrl>
+	<EmbedUntrackedSources>true</EmbedUntrackedSources>
+	<IncludeSymbols>true</IncludeSymbols>
+	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<None Include="README.md" Pack="true" PackagePath="\" />
+	<None Include="Sql\*.sql" Pack="true" PackagePath="Sql\" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<InternalsVisibleTo Include="AuditLoggingPipeline.Sql.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.8" />
+	<PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.403" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<ProjectReference Include="..\AuditLoggingPipeline.Models\AuditLoggingPipeline.Models.csproj" />
+	<ProjectReference Include="..\AuditLoggingPipeline.Tracker\AuditLoggingPipeline.Tracker.csproj" />
+  </ItemGroup>
+
+</Project>
