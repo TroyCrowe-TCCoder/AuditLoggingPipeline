@@ -94,6 +94,33 @@ public class CoreBehaviorTests
     }
 
     [Fact]
+    public void Recorder_WithEntityKeysAndNoEntityId_JoinsKeysIntoEntityId()
+    {
+        var channel = new AuditChannel();
+        var recorder = new AuditRecorder(channel, new FixedContextProvider(new AuditContext { ActorId = "u1" }));
+        var keys = new Dictionary<string, string> { ["UserId"] = "u1", ["RoleId"] = "r1" };
+
+        Assert.True(recorder.Record(new AuditRecord { Action = "UserRoleInsert", EntityType = "UserRole", EntityKeys = keys }));
+        Assert.True(channel.Reader.TryRead(out var entry));
+
+        Assert.Equal("u1|r1", entry.EntityId);
+        Assert.Same(keys, entry.EntityKeys);
+    }
+
+    [Fact]
+    public void Recorder_WithEntityIdAndKeys_KeepsExplicitEntityId()
+    {
+        var channel = new AuditChannel();
+        var recorder = new AuditRecorder(channel, new FixedContextProvider(new AuditContext { ActorId = "u1" }));
+        var keys = new Dictionary<string, string> { ["RoleId"] = "r1" };
+
+        Assert.True(recorder.Record(new AuditRecord { Action = "RoleUpsert", EntityType = "Role", EntityId = "custom", EntityKeys = keys }));
+        Assert.True(channel.Reader.TryRead(out var entry));
+
+        Assert.Equal("custom", entry.EntityId);
+    }
+
+    [Fact]
     public void Channel_CountsDroppedEntries_WhenFull()
     {
         var channel = new AuditChannel(Monitor(new AuditPipelineOptions { ChannelCapacity = 2 }));

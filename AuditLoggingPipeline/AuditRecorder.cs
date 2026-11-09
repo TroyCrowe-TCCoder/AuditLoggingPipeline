@@ -42,8 +42,12 @@ public sealed class AuditRecorder : IAuditRecorder
             IpAddress = context.IpAddress,
             CorrelationId = context.CorrelationId,
             EntityType = record.EntityType,
-            EntityId = record.EntityId,
+            EntityId = record.EntityId ?? JoinKeys(record.EntityKeys),
+            EntityKeys = record.EntityKeys,
             Reason = record.Reason,
         };
     }
+
+    private static string? JoinKeys(IReadOnlyDictionary<string, string>? keys) =>
+        keys is { Count: > 0 } ? string.Join('|', keys.Values) : null;
 }

@@ -14,7 +14,7 @@
 
   <PropertyGroup>
 	<PackageId>AuditLoggingPipeline.Models</PackageId>
-	<Version>0.3.0</Version>
+	<Version>0.4.0</Version>
 	<Authors>Troy Crowe</Authors>
 	<Company>Single Source Management</Company>
 	<Product>AuditLoggingPipeline.Models</Product>

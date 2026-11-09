@@ -12,6 +12,9 @@ public sealed class AuditRecord
     /// <summary>The identifier of the entity acted upon, as text, if there is one.</summary>
     public string? EntityId { get; init; }
 
+    /// <summary>The entity's key parts by name (for example <c>UserId</c> and <c>RoleId</c>), stored as JSON. When <see cref="EntityId"/> is not set, it is built from these values joined with <c>|</c>.</summary>
+    public IReadOnlyDictionary<string, string>? EntityKeys { get; init; }
+
     /// <summary>Whether the action succeeded. Defaults to true.</summary>
     public bool Succeeded { get; init; } = true;
 
