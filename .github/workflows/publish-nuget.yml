@@ -34,6 +34,9 @@ jobs:
       - name: Pack AuditLoggingPipeline.Tracker
         run: dotnet pack AuditLoggingPipeline.Tracker/AuditLoggingPipeline.Tracker.csproj -c Release -o "${{ github.workspace }}/nupkgs"
 
+      - name: Pack AuditLoggingPipeline.Sql
+        run: dotnet pack AuditLoggingPipeline.Sql/AuditLoggingPipeline.Sql.csproj -c Release -o "${{ github.workspace }}/nupkgs"
+
       - name: Pack AuditLoggingPipeline.Telemetry
         run: dotnet pack AuditLoggingPipeline.Telemetry/AuditLoggingPipeline.Telemetry.csproj -c Release -o "${{ github.workspace }}/nupkgs"
 

@@ -44,6 +44,9 @@ public sealed class AuditEntry
     /// <summary>The identifier of the entity acted upon, as text so any key type fits.</summary>
     public string? EntityId { get; init; }
 
+    /// <summary>The entity's key parts by name (for example <c>UserId</c> and <c>RoleId</c>), when the caller supplied them.</summary>
+    public IReadOnlyDictionary<string, string>? EntityKeys { get; init; }
+
     /// <summary>A caller-supplied explanation, for example why an authorization check failed.</summary>
     public string? Reason { get; init; }
 

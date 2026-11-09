@@ -14,6 +14,7 @@ plugin, or both.
 | `AuditLoggingPipeline.Tracker` (Tracker) | "What changed" — state trail of the record a method mutated. | Models, Core |
 | `AuditLoggingPipeline.Telemetry` (Telemetry) | "How it is used" — batched, sampled usage events with durations and outcomes. Informational, not about who. | Models, Core |
 | `AuditLoggingPipeline.Telemetry.Sql` (Telemetry SQL sink) | Stores usage events in SQL Server through a stored procedure and a table-valued parameter. The app owns the tables. | Models |
+| `AuditLoggingPipeline.Sql` (Audit and state-trail SQL sinks) | Stores audit and state-trail entries in SQL Server in one standard audit shape through a stored procedure and a table-valued parameter. The app owns the tables and supplies the configuration. | Models, Tracker |
 
 Audit, Tracker and Telemetry are optional sibling plugins.
 if you only need the shared contracts to build your own sink implementations.
@@ -29,8 +30,9 @@ if you only need the shared contracts to build your own sink implementations.
   bounded channel, and delivered by a background service. Each sink gets a timeout and retries,
   and a failing sink never stops the others. Dropped entries and sink failures are logged, and
   buffered entries are delivered on shutdown.
-- **Bring your own sinks.** Neither plugin ships a concrete store. Each consuming application
-  implements `IAuditSink` and/or `ITrackerSink` and maps the entry onto its own tables.
+- **Bring your own sinks, or use the SQL package.** Neither plugin ships a concrete store. Each consuming
+  application implements `IAuditSink` and/or `ITrackerSink`, or adds `AuditLoggingPipeline.Sql`, which
+  stores both in one standard audit shape in tables the application owns.
 
 ## Quick start
 
@@ -65,6 +67,7 @@ See the package-level READMEs for full details:
 - [`AuditLoggingPipeline.Tracker/README.md`](./AuditLoggingPipeline.Tracker/README.md)
 - [`AuditLoggingPipeline.Telemetry/README.md`](./AuditLoggingPipeline.Telemetry/README.md)
 - [`AuditLoggingPipeline.Telemetry.Sql/README.md`](./AuditLoggingPipeline.Telemetry.Sql/README.md)
+- [`AuditLoggingPipeline.Sql/README.md`](./AuditLoggingPipeline.Sql/README.md)
 
 ## Repository layout
 
@@ -76,8 +79,10 @@ AuditLoggingPipeline/                 Audit plugin ("what happened")
 AuditLoggingPipeline.Tracker/         Tracker plugin ("what changed")
 AuditLoggingPipeline.Telemetry/       Telemetry plugin ("how it is used")
 AuditLoggingPipeline.Telemetry.Sql/   SQL Server sink for Telemetry
+AuditLoggingPipeline.Sql/             SQL Server sinks for audit and state trail
 AuditLoggingPipeline.Tests/           Audit plugin and Core tests
 AuditLoggingPipeline.Tracker.Tests/   Tracker plugin tests
 AuditLoggingPipeline.Telemetry.Tests/ Telemetry plugin tests
 AuditLoggingPipeline.Telemetry.Sql.Tests/ SQL sink tests
+AuditLoggingPipeline.Sql.Tests/       Audit and state-trail SQL sink tests
 ```
