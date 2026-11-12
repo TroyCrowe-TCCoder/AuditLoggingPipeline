@@ -11,7 +11,7 @@
 
   <PropertyGroup>
 	<PackageId>AuditLoggingPipeline.Telemetry.Sql</PackageId>
-	<Version>0.1.0</Version>
+	<Version>0.1.1</Version>
 	<Authors>Troy Crowe</Authors>
 	<Company>Single Source Management</Company>
 	<Product>AuditLoggingPipeline.Telemetry.Sql</Product>

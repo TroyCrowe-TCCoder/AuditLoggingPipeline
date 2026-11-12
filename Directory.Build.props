@@ -1,5 +1,9 @@
 <Project>
 
+  <PropertyGroup>
+	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
   <ItemGroup>
 	<PackageReference Include="ValidationEngine.Analyzers" Version="1.0.7" PrivateAssets="all" />
   </ItemGroup>
