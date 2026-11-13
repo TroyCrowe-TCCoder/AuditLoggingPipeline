@@ -22,14 +22,9 @@ builder.Services.AddSqlTelemetrySink(options =>
 
 Options are validated at start-up, so a missing connection string stops the host instead of silently dropping events.
 
-| Option | Default | Meaning |
-|---|---|---|
-| `ConnectionString` | none, required | Database that holds the telemetry tables |
-| `ProcedureName` | `dbo.UsageEvent_Insert` | Procedure that inserts a batch |
-| `ParameterName` | `@Events` | Its table-valued parameter |
-| `TableTypeName` | `dbo.UsageEventList` | Table type of that parameter |
-| `ChunkSize` | 100 | Most rows per procedure call; larger batches are split and commit together |
-| `CommandTimeoutSeconds` | 30 | Timeout per procedure call |
+## Configuration
+
+Every option, its default, and whether it is required or secret is in the [configuration reference](CONFIGURATION.md). The connection string is a secret. It comes from Key Vault when the app is deployed and from user secrets locally, never from a configuration file.
 
 ## Database contract
 

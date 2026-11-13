@@ -34,9 +34,13 @@ services.AddScoped<ITelemetrySink, MyTelemetrySink>();
 services.AddTelemetryScoped<IClientService, ClientService>();
 ```
 
+## Configuration
+
+Every option, its default, and whether it is required or secret is in the [configuration reference](CONFIGURATION.md). `UserKeySalt` is a secret. It comes from Key Vault when the app is deployed and from user secrets locally, never from a configuration file.
+
 ## Sampling
 
-With `SampleRate` below 1, only that fraction of **successful** events is kept and each kept event
+With `SampleRate` below 1,
 carries `SampleWeight` (the reciprocal), so counts can be reconstructed by summing weights. Failed
 and canceled events are always kept with weight 1.
 

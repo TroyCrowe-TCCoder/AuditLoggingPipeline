@@ -31,6 +31,10 @@ services.AddScoped<ITrackerSink, MyStateTrailSink>();
 services.AddTrackedScoped<IClientService, ClientService>();
 ```
 
+## Configuration
+
+Every option, its default, and whether it is required or secret is in the [configuration reference](CONFIGURATION.md).
+
 ## Notes
 
 - Audit and Tracker are independent; install either or both. A failure in one never affects the
