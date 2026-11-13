@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="AuditLoggingPipeline.Core/AuditLoggingPipeline.Core.csproj" />
+  <Project Path="AuditLoggingPipeline.Documentation.Tests/AuditLoggingPipeline.Documentation.Tests.csproj" />
     <Project Path="AuditLoggingPipeline.Models/AuditLoggingPipeline.Models.csproj" />
   <Project Path="AuditLoggingPipeline.Sql/AuditLoggingPipeline.Sql.csproj" />
   <Project Path="AuditLoggingPipeline.Sql.Tests/AuditLoggingPipeline.Sql.Tests.csproj" />

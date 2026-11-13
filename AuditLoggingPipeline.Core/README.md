@@ -26,6 +26,10 @@ building your own plugin.
   active-user cache.
 - `JsonPayload` - serialization that never truncates and passes valid JSON through unchanged.
 
+## Configuration
+
+Every option, its default, and whether it is required or secret is in the [configuration reference](CONFIGURATION.md).
+
 ## Design notes
 
 - Entries are captured on the caller's thread, so request-scoped data is never read from a

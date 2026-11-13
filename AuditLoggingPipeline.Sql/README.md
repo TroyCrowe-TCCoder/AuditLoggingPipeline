@@ -31,29 +31,17 @@ builder.Services.AddSqlStateTrailSink(options =>
 
 Options are validated at start-up, so a missing connection string or an empty target map stops the host instead of silently dropping entries.
 
+## Configuration
+
+Every option, its default, and whether it is required or secret is in the [configuration reference](CONFIGURATION.md). The connection string is a secret. It comes from Key Vault when the app is deployed and from user secrets locally, never from a configuration file.
+
 ### Security audit: `SqlAuditSinkOptions`
 
-One security audit table per consuming solution.
-
-| Option | Default | Meaning |
-|---|---|---|
-| `ConnectionString` | none, required | Database that holds the audit table |
-| `ProcedureName` | `dbo.SecurityAudit_Insert` | Procedure that inserts an entry |
-| `ParameterName` | `@Entries` | Its table-valued parameter |
-| `TableTypeName` | `dbo.AuditList` | Table type of that parameter |
-| `CommandTimeoutSeconds` | 30 | Timeout per procedure call |
+One security audit table per consuming solution, so there is one procedure and no routing.
 
 ### State tracking: `SqlStateTrailSinkOptions`
 
 One table per tracked object. `Targets` maps each entry's `EntityName` (case-insensitive) to the insert procedure of that object's table. An entry whose object has no target throws, so the pipeline retries, logs and drops it. It is never written to the wrong table.
-
-| Option | Default | Meaning |
-|---|---|---|
-| `ConnectionString` | none, required | Database that holds the state-trail tables |
-| `Targets` | none, at least one | `EntityName` to insert procedure |
-| `ParameterName` | `@Entries` | Table-valued parameter of every procedure |
-| `TableTypeName` | `dbo.AuditList` | Table type of that parameter |
-| `CommandTimeoutSeconds` | 30 | Timeout per procedure call |
 
 ## The standard shape
 

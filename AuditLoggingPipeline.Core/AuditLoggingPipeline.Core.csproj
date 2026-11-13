@@ -11,7 +11,7 @@
 
   <PropertyGroup>
 	<PackageId>AuditLoggingPipeline.Core</PackageId>
-	<Version>0.3.1</Version>
+	<Version>0.3.2</Version>
 	<Authors>Troy Crowe</Authors>
 	<Company>Single Source Management</Company>
 	<Product>AuditLoggingPipeline.Core</Product>
@@ -28,6 +28,7 @@
 
   <ItemGroup>
 	<None Include="README.md" Pack="true" PackagePath="\" Condition="Exists('README.md')" />
+	<None Include="CONFIGURATION.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
