@@ -36,6 +36,10 @@ services.AddAuditedScoped<IClientService, ClientService>();
 
 `IncludeArguments` is off by default because arguments can contain sensitive data.
 
+## Configuration
+
+Every option, its default, and whether it is required or secret is in the [configuration reference](CONFIGURATION.md).
+
 ## Notes
 
 - Depends on `AuditLoggingPipeline.Models` and `AuditLoggingPipeline.Core`.

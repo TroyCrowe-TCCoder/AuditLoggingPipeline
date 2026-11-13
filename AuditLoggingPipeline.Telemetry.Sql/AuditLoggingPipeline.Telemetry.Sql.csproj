@@ -11,7 +11,7 @@
 
   <PropertyGroup>
 	<PackageId>AuditLoggingPipeline.Telemetry.Sql</PackageId>
-	<Version>0.1.1</Version>
+	<Version>0.1.2</Version>
 	<Authors>Troy Crowe</Authors>
 	<Company>Single Source Management</Company>
 	<Product>AuditLoggingPipeline.Telemetry.Sql</Product>
@@ -28,6 +28,7 @@
 
   <ItemGroup>
 	<None Include="README.md" Pack="true" PackagePath="\" />
+	<None Include="CONFIGURATION.md" Pack="true" PackagePath="\" />
 	<None Include="Sql\*.sql" Pack="true" PackagePath="Sql\" />
   </ItemGroup>
 
