@@ -24,6 +24,8 @@ public abstract class EntryDispatchService<TEntry, TSink> : IHostedService, IDis
 	private readonly Func<EntryPipelineOptions> _options;
 	private readonly string _pipelineName;
 	private readonly CancellationTokenSource _drainTimeout = new();
+	private readonly object _drainGate = new();
+	private bool _disposed;
 	private Task? _runTask;
 	private long _lastLoggedDropCount;
 
@@ -98,13 +100,13 @@ public abstract class EntryDispatchService<TEntry, TSink> : IHostedService, IDis
 		_channel.Complete();
 
 		// A host can dispose its services before stopping them; the drain then runs without the timeout.
-		try
+		// A flag is used instead of catching ObjectDisposedException so that no logging call can fail shutdown.
+		lock (_drainGate)
 		{
-			_drainTimeout.CancelAfter(_options().ShutdownDrainTimeout);
-		}
-		catch (ObjectDisposedException ex)
-		{
-			_logger.LogError(ex, "{Pipeline} was stopped after it was disposed; the buffered entries are delivered without a drain timeout.", _pipelineName);
+			if (!_disposed)
+			{
+				_drainTimeout.CancelAfter(_options().ShutdownDrainTimeout);
+			}
 		}
 
 		if (_runTask is not null)
@@ -116,7 +118,12 @@ public abstract class EntryDispatchService<TEntry, TSink> : IHostedService, IDis
 	/// <summary>Releases the drain timer.</summary>
 	public void Dispose()
 	{
-		_drainTimeout.Dispose();
+		lock (_drainGate)
+		{
+			_disposed = true;
+			_drainTimeout.Dispose();
+		}
+
 		GC.SuppressFinalize(this);
 	}
 
