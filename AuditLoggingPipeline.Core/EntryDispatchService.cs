@@ -64,7 +64,8 @@ public abstract class EntryDispatchService<TEntry, TSink> : IHostedService, IDis
 	/// <param name="cancellationToken">Not used; the loop runs until <see cref="StopAsync"/>.</param>
 	public Task StartAsync(CancellationToken cancellationToken)
 	{
-		_runTask ??= Task.Run(() => RunAsync(_drainTimeout.Token), CancellationToken.None);
+		var drainToken = _drainTimeout.Token;
+		_runTask ??= Task.Run(() => RunAsync(drainToken), CancellationToken.None);
 
 		return Task.CompletedTask;
 	}
@@ -95,7 +96,16 @@ public abstract class EntryDispatchService<TEntry, TSink> : IHostedService, IDis
 	public async Task StopAsync(CancellationToken cancellationToken)
 	{
 		_channel.Complete();
-		_drainTimeout.CancelAfter(_options().ShutdownDrainTimeout);
+
+		// A host can dispose its services before stopping them; the drain then runs without the timeout.
+		try
+		{
+			_drainTimeout.CancelAfter(_options().ShutdownDrainTimeout);
+		}
+		catch (ObjectDisposedException ex)
+		{
+			_logger.LogError(ex, "{Pipeline} was stopped after it was disposed; the buffered entries are delivered without a drain timeout.", _pipelineName);
+		}
 
 		if (_runTask is not null)
 		{

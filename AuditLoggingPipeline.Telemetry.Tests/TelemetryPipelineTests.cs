@@ -57,6 +57,19 @@ public class TelemetryPipelineTests
     }
 
     [Fact]
+    public async Task Service_StopAfterDispose_DoesNotThrowAndStillDrains()
+    {
+        var (service, channel, sink) = Create(new TelemetryOptions { BatchSize = 100, FlushInterval = TimeSpan.FromMinutes(5) });
+        await service.StartAsync(CancellationToken.None);
+        channel.TryWrite(new UsageEvent { Name = "A" });
+        service.Dispose();
+
+        await service.StopAsync(CancellationToken.None);
+
+        Assert.Equal(1, sink.EventCount);
+    }
+
+    [Fact]
     public async Task Service_DeliversToHealthySink_WhenAnotherSinkFails()
     {
         var options = new TelemetryOptions { BatchSize = 2, FlushInterval = TimeSpan.FromMilliseconds(50), SinkMaxRetries = 0 };

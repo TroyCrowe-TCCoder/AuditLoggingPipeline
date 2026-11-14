@@ -200,6 +200,21 @@ public class CoreBehaviorTests
     }
 
     [Fact]
+    public async Task StopAsync_AfterDispose_DoesNotThrowAndStillDrains()
+    {
+        var sink = new FlakySink(failures: 0);
+        var (channel, service) = Build(sink, new AuditPipelineOptions());
+
+        await service.StartAsync(CancellationToken.None);
+        channel.TryWrite(NewEntry());
+        service.Dispose();
+
+        await service.StopAsync(CancellationToken.None);
+
+        Assert.Equal(1, sink.Received);
+    }
+
+    [Fact]
     public async Task Proxy_CapturesContext_AtCallTime()
     {
         var channel = new AuditChannel();
